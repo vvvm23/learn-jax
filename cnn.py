@@ -10,7 +10,7 @@ from torchvision import datasets, transforms
 
 from functools import partial
 
-def setup_loaders(batch_size: int, dataset_name: str = 'mnist'):
+def setup_loaders(batch_size: int, name: str = 'mnist'):
     if name == 'mnist':
         train_loader = torch.utils.data.DataLoader(
             datasets.MNIST('../data', train=True, download=True,
@@ -87,14 +87,45 @@ def net_forward(conv, fc, x):
     x = vmap(np.dot, in_axes=(None, 0), out_axes=0)(fc['w'], x) + fc['b']
     return x
 
+def one_hot(x, nb_classes, dtype=np.float32):
+    return jnp.array(x[:, None] == jnp.arange(nb_classes), dtype=dtype)
+
+def loss_fn(conv, fc, batch_x, batch_y):
+    N = batch_x.shape[0]
+    logits = net_forward(conv, fc, batch_x)
+
+    predicted_class = np.argmax(logits, axis=-1)
+    true_class = np.argmax(batch_y, axis=-1)
+    nb_correct = np.sum(predicted_class == true_class)
+
+    return -np.sum(logits * batch_y) / N, nb_correct / N
+
+@jit
+def update(conv, fc, x, y, opt, opt_state):
+    _, opt_update, get_params = opt
+    (loss, acc), grad = value_and_grad(loss_fn, has_aux=True)(conv, fc, x, y)
+    opt_state = opt_update(0, grad, opt_state)
+    new_params = get_params(opt_state)
+
+    fc = new_params['fc']
+    new_conv = new_params['conv']
+    conv = [nc, oc[1] for oc, nc in zip(conv, new_conv)]
+    return conv, fc, opt_state, loss, acc
+
+def train():
+    pass
+
 if __name__ == '__main__':
     key = random.PRNGKey(123)
     conv_key, key = random.split(key)
     param, fn = init_conv(conv_key, 3, 16, 3, stride=1)
 
-    xkey, key = random.split(key)
-    X = random.normal(xkey, (8, 3, 28, 28))
-
     conv, fc = init_net(key, [3, 16, 32, 32], [3, 3, 3], [2, 1, 2], 7*7*32, 10)
+    train_loader, test_loader = setup_loaders(batch_size = 128)
+    opt_init, opt_update, get_params = optimizers.adam(1e-3)
+    opt_state = opt_init({'conv': [c[0] for c in conv], 'fc': fc})
+
     logits = net_forward(conv, fc, X)
     print(logits.shape)
+
+    print(update(conv, fc, ))
