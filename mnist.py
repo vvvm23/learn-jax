@@ -8,7 +8,7 @@ from jax.experimental import optimizers
 import torch
 from torchvision import datasets, transforms
 
-def setup_loaders(batch_size: int, dataset_name: str = 'mnist'):
+def setup_loaders(batch_size: int, name: str = 'mnist'):
     if name == 'mnist':
         train_loader = torch.utils.data.DataLoader(
             datasets.MNIST('../data', train=True, download=True,
