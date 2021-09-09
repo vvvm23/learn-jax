@@ -139,6 +139,7 @@ def train(conv, fc, strides, opt, opt_state, nb_epochs=10):
         print(msg)
 
 if __name__ == '__main__':
+    print("! WARNING: this implementation is not working")
     key = random.PRNGKey(123)
     conv_key, key = random.split(key)
     # param, fn = init_conv(conv_key, 3, 16, 3, stride=1)
