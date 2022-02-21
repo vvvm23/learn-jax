@@ -97,8 +97,8 @@ def train(opt_state, nb_epochs=10):
 
         msg = (
             f"epoch {eid+1}/{nb_epochs}\n"
-            f"      train_loss: {train_loss / len(train_loader)}, train_accuracy: {100.0 * train_accuracy / len(train_loader):.2f}%\n"
-            f"      test_loss: {test_loss / len(test_loader)}, test_accuracy: {100.0 * test_accuracy / len(test_loader):.2f}%\n"
+            f"  train_loss: {train_loss / len(train_loader)}, train_accuracy: {100.0 * train_accuracy / len(train_loader):.2f}%\n"
+            f"  test_loss: {test_loss / len(test_loader)}, test_accuracy: {100.0 * test_accuracy / len(test_loader):.2f}%\n"
         )
         print(msg)
 
