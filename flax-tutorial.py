@@ -3,6 +3,7 @@ import jax.numpy as jnp
 
 import optax
 import flax.linen as nn
+from flax.training.train_state import TrainState
 
 import numpy as np
 from typing import Sequence
@@ -34,17 +35,21 @@ def loss(params: optax.Params, batch: jnp.ndarray, labels: jnp.ndarray) -> jnp.n
     return loss_val.mean(), (logits.argmax(axis=-1) == labels.argmax(axis=-1)).sum(axis=-1) / batch_size
 
 def fit(params: optax.Params, opt: optax.GradientTransformation) -> optax.Params:
-    opt_state = opt.init(params)
+    state = TrainState.create(
+        apply_fn=net.apply,
+        params=params,
+        tx=opt,
+        # opt_state=opt.init(params)
+    )
 
     @jax.jit
-    def step(params, opt_state, batch, labels):
-        (loss_val, accuracy), grads = jax.value_and_grad(loss, has_aux=True)(params, batch, labels)
-        updates, opt_state = opt.update(grads, opt_state, params)
-        params = optax.apply_updates(params, updates)
-        return params, opt_state, loss_val, accuracy
+    def step(state, batch, labels):
+        (loss_val, accuracy), grads = jax.value_and_grad(loss, has_aux=True)(state.params, batch, labels)
+        state = state.apply_gradients(grads=grads)
+        return state, loss_val, accuracy
     
     for i, (batch, labels) in enumerate(zip(train_data, train_labels)):
-        params, opt_state, loss_val, accuracy = step(params, opt_state, batch, labels)
+        state, loss_val, accuracy = step(state, batch, labels)
         if i % 100 == 0:
             print(f"step {i}/{nb_steps} | loss: {loss_val:.5f} | accuracy: {accuracy*100:.2f}%")
 
